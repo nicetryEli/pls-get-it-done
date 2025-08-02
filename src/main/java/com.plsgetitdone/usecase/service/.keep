@@ -1,0 +1,3 @@
+Contains application use cases (business actions).
+Each file handles one specific task (e.g., create_task, update_task).
+Calls domain models, repositories, and returns results.
