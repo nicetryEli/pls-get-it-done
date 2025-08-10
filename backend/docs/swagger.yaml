@@ -1,0 +1,58 @@
+basePath: /api
+definitions:
+  error_usecase.ErrorResp:
+    properties:
+      message:
+        type: string
+    type: object
+  healthcheck_usecase.GetHealthStatusResp:
+    properties:
+      message:
+        type: string
+    type: object
+host: localhost:8000
+info:
+  contact:
+    email: annalilly131205@gmail.com
+    url: https://github.com/nicetryEli
+  description: the api documentation for server
+  title: swagger api
+  version: "1.0"
+paths:
+  /healthcheck:
+    get:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/healthcheck_usecase.GetHealthStatusResp'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/error_usecase.ErrorResp'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/error_usecase.ErrorResp'
+      summary: get health status
+      tags:
+      - healthcheck
+securityDefinitions:
+  ApiKeyAuth:
+    description: bearer token for authentication
+    in: header
+    name: Authorization
+    type: apiKey
+  OAuth2Password:
+    flow: password
+    scopes:
+      admin: Grants read and write access to administrative information
+      read: Grants read access
+      write: Grants write access
+    tokenUrl: http://localhost:8000/api/auth/token
+    type: oauth2
+swagger: "2.0"

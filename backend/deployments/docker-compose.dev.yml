@@ -1,0 +1,163 @@
+networks:
+  postgres-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.10.0.0/16
+          gateway: 10.10.0.1
+  minio-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.11.0.0/16
+          gateway: 10.11.0.1
+  rabbitmq-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.12.0.0/16
+          gateway: 10.12.0.1
+  redis-network:
+    driver: bridge
+    ipam: 
+      config:
+        - subnet: 10.13.0.0/16
+          gateway: 10.13.0.1
+
+services:
+  redis:
+    image: redis:8-alpine
+    container_name: redis
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    networks:
+      redis-network:
+        ipv4_address: 10.13.0.3
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  redis-insight:
+    image: redislabs/redisinsight:latest
+    container_name: redis-insight
+    restart: unless-stopped
+    networks:
+      redis-network: 
+        ipv4_address: 10.13.0.4
+    ports:
+      - "5540:5540"
+    volumes:
+      - redisinsight-data:/db
+
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    container_name: rabbitmq
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+    ports:
+      - "15672:15672"
+    networks:
+      rabbitmq-network:
+        ipv4_address: 10.12.0.3
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    networks:
+      minio-network:
+        ipv4_address: 10.11.0.3
+    volumes:
+      - minio-data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  postgresql:
+    image: postgres:16-alpine
+    container_name: postgresql
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_SSL_MODE: ${POSTGRES_SSL_MODE}
+      TZ: ${POSTGRES_TZ}
+    ports:
+      - "5432:5432"
+    networks:
+      postgres-network:
+        ipv4_address: 10.10.0.3
+    volumes:
+      - postgresql-data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        ["CMD", "pg_isready", "-U", "${POSTGRES_USER}", "-d", "${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  server:
+    build:
+      context: ./../
+      dockerfile: ./build/package/Dockerfile
+    container_name: ${APP_NAME}
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "8000:8000"
+    networks:
+      postgres-network:
+        ipv4_address: 10.10.0.2
+      minio-network:
+        ipv4_address: 10.11.0.2
+      rabbitmq-network:
+        ipv4_address: 10.12.0.2
+      redis-network:
+        ipv4_address: 10.13.0.2
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  postgresql-data:
+  minio-data:
+  rabbitmq-data:
+  redis-data:
+  redisinsight-data:

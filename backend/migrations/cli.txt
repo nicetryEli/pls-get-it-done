@@ -1,0 +1,7 @@
+migrate create -ext sql -dir ./migrations -seq <migration name>
+migrate -path ./migrations -database "postgres://<username>:<password>@<host>:<post>/<dbname>?sslmode=<mode>" version
+migrate -path ./migrations -database "postgres://<username>:<password>@<host>:<post>/<dbname>?sslmode=<mode>" up
+migrate -path ./migrations -database "postgres://<username>:<password>@<host>:<post>/<dbname>?sslmode=<mode>" up <step>
+migrate -path ./migrations -database "postgres://<username>:<password>@<host>:<post>/<dbname>?sslmode=<mode>" down
+migrate -path ./migrations -database "postgres://<username>:<password>@<host>:<post>/<dbname>?sslmode=<mode>" down <step>
+migrate -path ./migrations -database "postgres://<username>:<password>@<host>:<post>/<dbname>?sslmode=<mode>" force <version>

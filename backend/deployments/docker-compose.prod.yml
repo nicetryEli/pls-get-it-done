@@ -1,0 +1,123 @@
+version: "3.3"
+
+networks:
+  postgres-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.10.0.0/16
+          gateway: 10.10.0.1
+  minio-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.11.0.0/16
+          gateway: 10.11.0.1
+  rabbitmq-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.12.0.0/16
+          gateway: 10.12.0.1
+  redis-network:
+    driver: bridge
+    ipam: 
+      config:
+        - subnet: 10.13.0.0/16
+          gateway: 10.13.0.1
+
+services:
+  redis:
+    image: redis:8-alpine
+    container_name: redis
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    networks:
+      redis-network:
+        ipv4_address: 10.13.0.3
+    volumes:
+      - redis-data:/data
+    
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    container_name: rabbitmq
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+      TZ: ${RABBITMQ_TIMEZONE}
+    ports:
+      - "15672:15672"
+    networks:
+      minio-network:
+        ipv4_address: 10.12.0.3
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    networks:
+      minio-network:
+        ipv4_address: 10.11.0.3
+    volumes:
+      - minio-data:/data
+    command: server /data --console-address ":9001"
+
+  postgresql:
+    image: postgres:16-alpine
+    container_name: postgresql
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_SSL_MODE: ${POSTGRES_SSL_MODE}
+      TZ: ${POSTGRES_TIMEZONE}
+    networks:
+      postgres-network:
+        ipv4_address: 10.10.0.3
+    volumes:
+      - postgresql-data:/var/lib/postgresql/data
+
+  server:
+    build:
+      context: ./../
+      dockerfile: ./build/package/Dockerfile
+    container_name: ${APP_NAME}
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "8000:8000"
+    networks:
+      postgres-network:
+        ipv4_address: 10.10.0.2
+      minio-network:
+        ipv4_address: 10.11.0.2
+      rabbitmq-network:
+        ipv4_address: 10.12.0.2
+      redis-network:
+        ipv4_address: 10.13.0.2
+    depends_on:
+      - postgresql
+      - minio
+      - redis
+      - rabbitmq
+
+volumes:
+  postgresql-data:
+  minio-data:
+  redis-data:
+  rabbitmq-data:
