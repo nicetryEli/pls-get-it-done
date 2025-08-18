@@ -24,8 +24,8 @@ func init() {
 			Env.POSTGRES_USER,
 			Env.POSTGRES_PASSWORD,
 			Env.POSTGRES_DB,
-			Env.POSTGRES_SSL_MODE,
-			Env.POSTGRES_TZ,
+			Env.POSTGRES_SESSION_SSL_MODE,
+			Env.POSTGRES_SESSION_TZ,
 		)
 		connection, err := gorm.Open(postgres.Open(destination), &gorm.Config{})
 		if err != nil {

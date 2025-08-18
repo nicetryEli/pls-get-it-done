@@ -6,7 +6,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/little-tonii/gofiber-base/internal/domain/entity"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 type UserPersistenceImpl struct {
@@ -19,23 +18,29 @@ func NewUserPersistenceImpl(db *gorm.DB) *UserPersistenceImpl {
 
 func (persistence *UserPersistenceImpl) FindById(ctx context.Context, id uuid.UUID) (*entity.User, error) {
 	result := new(entity.User)
-	if err := persistence.db.WithContext(ctx).First(result, id).Error; err != nil {
+	err := persistence.db.WithContext(ctx).
+		Raw(`
+			SELECT * FROM users WHERE id = @id
+		`, map[string]any{
+			"id": id,
+		}).Scan(result).Error
+	if err != nil {
 		return nil, err
 	}
 	return result, nil
 }
 
 func (persistence *UserPersistenceImpl) Save(ctx context.Context, user *entity.User) error {
-	if err := persistence.db.WithContext(ctx).Create(user).Error; err != nil {
+	err := persistence.db.WithContext(ctx).Create(user).Error
+	if err != nil {
 		return err
 	}
 	return nil
 }
 
 func (persistence *UserPersistenceImpl) Update(ctx context.Context, user *entity.User) error {
-	if err := persistence.db.WithContext(ctx).
-		Clauses(clause.Locking{Strength: "SHARE", Options: "NOWAIT"}).
-		Save(user).Error; err != nil {
+	err := persistence.db.WithContext(ctx).Save(user).Error
+	if err != nil {
 		return err
 	}
 	return nil

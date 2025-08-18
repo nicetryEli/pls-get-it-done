@@ -2,6 +2,7 @@ package config
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"sync"
 
@@ -17,7 +18,7 @@ var (
 func init() {
 	minioClientOnce.Do(func() {
 		minioClient, err := minio.New(
-			Env.MINIO_DOMAIN,
+			fmt.Sprintf("%s:%s", Env.MINIO_HOST, Env.MINIO_API_PORT_NUMBER),
 			&minio.Options{
 				Creds:  credentials.NewStaticV4(Env.MINIO_ROOT_USER, Env.MINIO_ROOT_PASSWORD, ""),
 				Secure: Env.MINIO_USE_SSL,

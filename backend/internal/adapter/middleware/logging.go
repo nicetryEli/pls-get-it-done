@@ -7,11 +7,15 @@ import (
 	"go.uber.org/zap"
 )
 
-func LoggingMiddleware(logger *zap.Logger) fiber.Handler {
+type LoggingConfig struct {
+	Logger *zap.Logger
+}
+
+func LoggingMiddleware(config *LoggingConfig) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		start := time.Now()
+		clock := time.Now()
 		err := c.Next()
-		latency := time.Since(start)
+		latency := time.Since(clock)
 		method := c.Method()
 		statusCode := c.Response().StatusCode()
 		urlPath := c.OriginalURL()
@@ -22,7 +26,7 @@ func LoggingMiddleware(logger *zap.Logger) fiber.Handler {
 			}
 		}
 
-		logger.Info(
+		config.Logger.Info(
 			"http",
 			zap.String("method", method),
 			zap.Int("status", statusCode),

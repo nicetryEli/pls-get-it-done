@@ -41,18 +41,24 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
-func AuthGuard(userPersis persistence.UserPersistence, allowPaths []string, secrets map[string]string) fiber.Handler {
+type AuthGuardConfig struct {
+	UserPersis persistence.UserPersistence
+	AllowPaths []string
+	Secrets    map[string]string
+}
+
+func AuthGuard(config *AuthGuardConfig) fiber.Handler {
 	return jwtware.New(jwtware.Config{
 		Filter: func(c *fiber.Ctx) bool {
 			path := c.Path()
-			for _, pattern := range allowPaths {
+			for _, pattern := range config.AllowPaths {
 				if path == pattern {
 					return true
 				}
 				if strings.HasSuffix(pattern, "/*") {
 					base := strings.TrimSuffix(pattern, "/*")
-					if strings.HasPrefix(path, base+"/") {
-						remainingPath := strings.TrimPrefix(path, base+"/")
+					if after, ok := strings.CutPrefix(path, base+"/"); ok {
+						remainingPath := after
 						if !strings.Contains(remainingPath, "/") {
 							return true
 						}
@@ -74,16 +80,16 @@ func AuthGuard(userPersis persistence.UserPersistence, allowPaths []string, secr
 			if err != nil {
 				return fiber.NewError(fiber.StatusUnauthorized, error_usecase.Unauthorized)
 			}
-			user, err := userPersis.FindById(c.Context(), userId)
+			_, err = config.UserPersis.FindById(c.Context(), userId)
 			if err != nil {
 				if errors.Is(err, gorm.ErrRecordNotFound) {
 					return fiber.NewError(fiber.StatusUnauthorized, error_usecase.Unauthorized)
 				}
 				return fiber.NewError(fiber.StatusInternalServerError, error_usecase.InternalServerError)
 			}
-			if user.TokenVersion != claims.TokenVersion {
-				return fiber.NewError(fiber.StatusUnauthorized, error_usecase.Unauthorized)
-			}
+			// if user.TokenVersion != claims.TokenVersion {
+			// 	return fiber.NewError(fiber.StatusUnauthorized, error_usecase.Unauthorized)
+			// }
 			c.Locals(CLAIMS, claims)
 			return c.Next()
 		},
@@ -91,10 +97,10 @@ func AuthGuard(userPersis persistence.UserPersistence, allowPaths []string, secr
 			return fiber.NewError(fiber.StatusUnauthorized, error_usecase.Unauthorized)
 		},
 		SigningKeys: map[string]jwtware.SigningKey{
-			ACCESS_TOKEN_KEY_ID:   {Key: []byte(secrets[ACCESS_TOKEN_SECRET])},
-			REFRESH_TOKEN_KEY_ID:  {Key: []byte(secrets[REFRESH_TOKEN_SECRET])},
-			VERIFY_TOKEN_KEY_ID:   {Key: []byte(secrets[VERIFY_TOKEN_SECRET])},
-			PASSWORD_TOKEN_KEY_ID: {Key: []byte(secrets[PASSWORD_TOKEN_SECRET])},
+			ACCESS_TOKEN_KEY_ID:   {Key: []byte(config.Secrets[ACCESS_TOKEN_SECRET])},
+			REFRESH_TOKEN_KEY_ID:  {Key: []byte(config.Secrets[REFRESH_TOKEN_SECRET])},
+			VERIFY_TOKEN_KEY_ID:   {Key: []byte(config.Secrets[VERIFY_TOKEN_SECRET])},
+			PASSWORD_TOKEN_KEY_ID: {Key: []byte(config.Secrets[PASSWORD_TOKEN_SECRET])},
 		},
 		ContextKey:         USER,
 		Claims:             &Claims{},

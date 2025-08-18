@@ -1,4 +1,4 @@
-package persistence
+package provider
 
 import (
 	"context"
@@ -11,6 +11,6 @@ import (
 type FilestoreProvider interface {
 	UploadFile(ctx context.Context, bucketName string, fileName string, file multipart.File, fileSize int64, options *minio.PutObjectOptions) (string, error)
 	GetPresignedUrl(ctx context.Context, bucketName string, fileName string, expiraton time.Duration, downloadable bool, downloadableFilename string) (string, error)
-	DeleteFile(ctx context.Context, bucketName string, fileName string, versionId string) error
+	DeleteFile(ctx context.Context, bucketName string, fileName string, options *minio.RemoveObjectOptions) error
 	GetBucketNames(ctx context.Context) ([]string, error)
 }

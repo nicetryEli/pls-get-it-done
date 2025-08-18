@@ -10,8 +10,8 @@ const docTemplate = `{
         "description": "{{escape .Description}}",
         "title": "{{.Title}}",
         "contact": {
-            "url": "https://github.com/nicetryEli",
-            "email": "annalilly131205@gmail.com"
+            "url": "https://github.com/little-tonii",
+            "email": "khuongle.workonly@gmail.com"
         },
         "version": "{{.Version}}"
     },
@@ -35,6 +35,12 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/healthcheck_usecase.GetHealthStatusResp"
+                        }
+                    },
+                    "408": {
+                        "description": "Request Timeout",
+                        "schema": {
+                            "$ref": "#/definitions/error_usecase.ErrorResp"
                         }
                     },
                     "500": {

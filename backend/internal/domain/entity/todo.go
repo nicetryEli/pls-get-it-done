@@ -6,7 +6,7 @@ import (
 	"github.com/google/uuid"
 )
 
-type Todos struct {
+type Todo struct {
 	Id        uuid.UUID `gorm:"column:id;primaryKey"`
 	UserId    uuid.UUID `gorm:"column:user_id"`
 	Title     string    `gorm:"column:title"`
@@ -14,6 +14,6 @@ type Todos struct {
 	UpdatedAt time.Time `gorm:"column:updated_at;autoUpdateTime:milli"`
 }
 
-func (Todos) TableName() string {
+func (Todo) TableName() string {
 	return "todos"
 }

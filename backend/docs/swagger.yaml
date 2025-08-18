@@ -13,8 +13,8 @@ definitions:
 host: localhost:8000
 info:
   contact:
-    email: annalilly131205@gmail.com
-    url: https://github.com/nicetryEli
+    email: khuongle.workonly@gmail.com
+    url: https://github.com/little-tonii
   description: the api documentation for server
   title: swagger api
   version: "1.0"
@@ -30,6 +30,10 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/healthcheck_usecase.GetHealthStatusResp'
+        "408":
+          description: Request Timeout
+          schema:
+            $ref: '#/definitions/error_usecase.ErrorResp'
         "500":
           description: Internal Server Error
           schema:

@@ -4,14 +4,15 @@ import (
 	"context"
 
 	"github.com/little-tonii/gofiber-base/internal/domain/persistence"
+	"github.com/little-tonii/gofiber-base/internal/domain/provider"
 )
 
 type UserUsecaseImpl struct {
 	userPersis persistence.UserPersistence
-	txProvider persistence.TransactionProvider
+	txProvider provider.TransactionProvider
 }
 
-func NewUserUsecaseImpl(userPersis persistence.UserPersistence, txProvider persistence.TransactionProvider) *UserUsecaseImpl {
+func NewUserUsecaseImpl(userPersis persistence.UserPersistence, txProvider provider.TransactionProvider) *UserUsecaseImpl {
 	return &UserUsecaseImpl{
 		userPersis: userPersis,
 		txProvider: txProvider,

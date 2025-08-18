@@ -4,8 +4,8 @@
         "description": "the api documentation for server",
         "title": "swagger api",
         "contact": {
-            "url": "https://github.com/nicetryEli",
-            "email": "annalilly131205@gmail.com"
+            "url": "https://github.com/little-tonii",
+            "email": "khuongle.workonly@gmail.com"
         },
         "version": "1.0"
     },
@@ -29,6 +29,12 @@
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/healthcheck_usecase.GetHealthStatusResp"
+                        }
+                    },
+                    "408": {
+                        "description": "Request Timeout",
+                        "schema": {
+                            "$ref": "#/definitions/error_usecase.ErrorResp"
                         }
                     },
                     "500": {

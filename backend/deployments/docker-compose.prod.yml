@@ -3,77 +3,45 @@ version: "3.3"
 networks:
   postgres-network:
     driver: bridge
-    ipam:
-      config:
-        - subnet: 10.10.0.0/16
-          gateway: 10.10.0.1
   minio-network:
     driver: bridge
-    ipam:
-      config:
-        - subnet: 10.11.0.0/16
-          gateway: 10.11.0.1
-  rabbitmq-network:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 10.12.0.0/16
-          gateway: 10.12.0.1
   redis-network:
     driver: bridge
-    ipam: 
-      config:
-        - subnet: 10.13.0.0/16
-          gateway: 10.13.0.1
+  kafka-network:
+    driver: bridge
 
 services:
   redis:
-    image: redis:8-alpine
+    image: bitnami/redis:8.2
     container_name: redis
     restart: unless-stopped
     env_file: .env
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD}
+      REDIS_PORT_NUMBER: ${REDIS_PORT_NUMBER}
     networks:
-      redis-network:
-        ipv4_address: 10.13.0.3
+      - redis-network
     volumes:
-      - redis-data:/data
-    
-  rabbitmq:
-    image: rabbitmq:4-management-alpine
-    container_name: rabbitmq
-    restart: unless-stopped
-    env_file: .env
-    environment:
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
-      TZ: ${RABBITMQ_TIMEZONE}
-    ports:
-      - "15672:15672"
-    networks:
-      minio-network:
-        ipv4_address: 10.12.0.3
-    volumes:
-      - rabbitmq-data:/var/lib/rabbitmq
+      - redis-data:/bitnami/redis/data
 
   minio:
-    image: minio/minio:latest
+    image: bitnami/minio:2025
     container_name: minio
     restart: unless-stopped
     env_file: .env
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_BROWSER: ${MINIO_BROWSER}
+      MINIO_CONSOLE_PORT_NUMBER: ${MINIO_CONSOLE_PORT_NUMBER}
+      MINIO_API_PORT_NUMBER: ${MINIO_API_PORT_NUMBER}
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "${MINIO_API_PORT_NUMBER}:${MINIO_API_PORT_NUMBER}"
+      - "${MINIO_CONSOLE_PORT_NUMBER}:${MINIO_CONSOLE_PORT_NUMBER}"
     networks:
-      minio-network:
-        ipv4_address: 10.11.0.3
+      - minio-network
     volumes:
-      - minio-data:/data
-    command: server /data --console-address ":9001"
+      - minio-data:/bitnami/minio/data
 
   postgresql:
     image: postgres:16-alpine
@@ -84,40 +52,61 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_SSL_MODE: ${POSTGRES_SSL_MODE}
-      TZ: ${POSTGRES_TIMEZONE}
     networks:
-      postgres-network:
-        ipv4_address: 10.10.0.3
+      - postgres-network
     volumes:
       - postgresql-data:/var/lib/postgresql/data
+
+  kafka:
+    image: bitnami/kafka:4.0
+    container_name: kafka
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      KAFKA_CFG_NODE_ID: 0
+      KAFKA_CFG_PROCESS_ROLES: ${KAFKA_CFG_PROCESS_ROLES}
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: ${KAFKA_CFG_CONTROLLER_QUORUM_VOTERS}
+      KAFKA_CLUSTER_ID: ${KAFKA_CLUSTER_ID}
+      KAFKA_CFG_LISTENERS: ${KAFKA_CFG_LISTENERS}
+      KAFKA_CFG_ADVERTISED_LISTENERS: ${KAFKA_CFG_ADVERTISED_LISTENERS}
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: ${KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP}
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: ${KAFKA_CFG_CONTROLLER_LISTENER_NAMES}
+      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: ${KAFKA_CFG_INTER_BROKER_LISTENER_NAME}
+      KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR: ${KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR}
+      KAFKA_CFG_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: ${KAFKA_CFG_TRANSACTION_STATE_LOG_REPLICATION_FACTOR}
+      KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR: ${KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR}
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: ${KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE}
+      # KAFKA_INTER_BROKER_USER: ${KAFKA_INTER_BROKER_USER}
+      # KAFKA_INTER_BROKER_PASSWORD: ${KAFKA_INTER_BROKER_PASSWORD}
+      # KAFKA_CONTROLLER_USER: ${KAFKA_CONTROLLER_USER}
+      # KAFKA_CONTROLLER_PASSWORD: ${KAFKA_CONTROLLER_PASSWORD}
+    networks:
+      - kafka-network
+    volumes:
+      - kafka-data:/bitnami/kafka
 
   server:
     build:
       context: ./../
       dockerfile: ./build/package/Dockerfile
-    container_name: ${APP_NAME}
+    container_name: ${SERVER_NAME}
     restart: unless-stopped
     env_file: .env
     ports:
-      - "8000:8000"
+      - "${SERVER_PORT}:${SERVER_PORT}"
     networks:
-      postgres-network:
-        ipv4_address: 10.10.0.2
-      minio-network:
-        ipv4_address: 10.11.0.2
-      rabbitmq-network:
-        ipv4_address: 10.12.0.2
-      redis-network:
-        ipv4_address: 10.13.0.2
+      - postgres-network
+      - minio-network
+      - redis-network
+      - kafka-network
     depends_on:
       - postgresql
       - minio
       - redis
-      - rabbitmq
+      - kafka
 
 volumes:
   postgresql-data:
   minio-data:
   redis-data:
-  rabbitmq-data:
+  kafka-data:

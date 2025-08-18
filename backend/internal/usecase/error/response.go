@@ -10,6 +10,7 @@ var (
 	Unauthorized        = "unauthorized"
 	Forbidden           = "forbidden"
 	ServiceUnavailable  = "service unavailable"
+	ProcessTimeout      = "process timeout"
 )
 
 type ErrorsResp struct {
